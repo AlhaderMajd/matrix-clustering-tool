@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Clustering and Vertical Splitting Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Matrix Clustering and Vertical Splitting Tool</h1>
+        
+        <!-- Input Section -->
+        <section id="input-section">
+            <h2>Input Matrix</h2>
+            <div class="input-controls">
+                <div class="file-input">
+                    <label for="csv-upload">Upload CSV:</label>
+                    <input type="file" id="csv-upload" accept=".csv">
+                </div>
+                <div class="matrix-size">
+                    <label for="matrix-size">Or create matrix:</label>
+                    <input type="number" id="matrix-size" min="2" max="10" value="4">
+                    <button id="create-matrix">Create Grid</button>
+                </div>
+            </div>
+            <div id="matrix-input-grid"></div>
+            <button id="process-matrix" class="primary-button">Process Matrix</button>
+        </section>
+
+        <!-- BEA Results Section -->
+        <section id="bea-section" class="hidden">
+            <h2>Bond Energy Algorithm Results</h2>
+            <div id="bea-steps" class="steps-container"></div>
+        </section>
+
+        <!-- Splitting Results Section -->
+        <section id="splitting-section" class="hidden">
+            <h2>Vertical Splitting Results</h2>
+            <div id="splitting-results"></div>
+        </section>
+
+        <!-- Visualization Section -->
+        <section id="visualization-section" class="hidden">
+            <h2>Matrix Visualization</h2>
+            <div id="heatmap-container"></div>
+        </section>
+    </div>
+
+    <script src="bea.js"></script>
+    <script src="splitting.js"></script>
+    <script src="visualization.js"></script>
+    <script src="main.js"></script>
+</body>
+</html> 

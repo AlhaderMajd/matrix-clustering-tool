@@ -15,10 +15,10 @@ let fragments = [];
 
 // Default matrix data
 const defaultMatrix = [
-    [45, 0, 45, 0],
-    [0, 80, 5, 75],
-    [45, 5, 53, 3],
-    [0, 75, 3, 78]
+    [78, 75, 3, 0],    // A4
+    [75, 80, 5, 0],    // A2
+    [3, 5, 53, 45],    // A3
+    [0, 0, 45, 45]     // A1
 ];
 
 // Event Listeners

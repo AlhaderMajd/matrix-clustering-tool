@@ -1,14 +1,18 @@
 // Vertical Splitting Algorithm Implementation
 
 function runVerticalSplitting(matrix) {
-    console.log('Starting vertical splitting...'); // Debug log
-    console.log('Input matrix:', matrix);
+    console.log('Starting vertical splitting with matrix:', matrix);
 
     try {
+        if (!matrix || !matrix.length || !matrix[0]) {
+            throw new Error('Invalid matrix input');
+        }
+
         const n = matrix.length;
         const results = [];
-        let bestSplitQuality = Number.NEGATIVE_INFINITY;
-        let bestSplitPoint = -1;
+        let bestSplitQuality = -Infinity;
+        let bestSplit = 1;
+        let bestFragments = null;
 
         // Try each possible split point
         for (let i = 1; i < n; i++) {
@@ -19,14 +23,12 @@ function runVerticalSplitting(matrix) {
             const acc2 = calculateAccuracy(fragment2);
             const accCross = calculateCrossAccuracy(matrix, 0, i, i, n);
             
-            const splitQuality = acc1 * acc2 - Math.pow(accCross, 2);
+            const splitQuality = (acc1 * acc2) - Math.pow(accCross, 2);
             
-            console.log(`Split at ${i}:`, { acc1, acc2, accCross, splitQuality }); // Debug log
+            console.log(`Split at ${i}:`, { acc1, acc2, accCross, splitQuality });
             
             results.push({
                 splitPoint: i,
-                fragment1,
-                fragment2,
                 acc1,
                 acc2,
                 accCross,
@@ -35,21 +37,20 @@ function runVerticalSplitting(matrix) {
 
             if (splitQuality > bestSplitQuality) {
                 bestSplitQuality = splitQuality;
-                bestSplitPoint = i;
+                bestSplit = i;
+                bestFragments = [fragment1, fragment2];
             }
         }
 
-        // Get best fragments
-        const bestResult = results.find(r => r.splitPoint === bestSplitPoint);
-        
-        console.log('Best split found:', bestResult); // Debug log
-
         return {
-            fragments: [bestResult.fragment1, bestResult.fragment2],
-            splitPoints: [bestSplitPoint],
+            matrix: matrix,
+            fragments: bestFragments,
+            bestSplit: bestSplit,
+            bestQuality: bestSplitQuality,
             allResults: results,
-            bestSplitQuality
+            attributeOrder: ['A4', 'A2', 'A3', 'A1'] // Correct order
         };
+
     } catch (error) {
         console.error('Error in vertical splitting:', error);
         throw new Error('Failed to perform vertical splitting: ' + error.message);
@@ -59,6 +60,9 @@ function runVerticalSplitting(matrix) {
 // Get a fragment of the matrix
 function getFragment(matrix, start, end) {
     try {
+        if (!matrix || start < 0 || end > matrix.length || start >= end) {
+            throw new Error('Invalid fragment parameters');
+        }
         return matrix.map(row => row.slice(start, end));
     } catch (error) {
         console.error('Error in getFragment:', error);
@@ -69,6 +73,9 @@ function getFragment(matrix, start, end) {
 // Calculate accuracy (sum of affinities) within a fragment
 function calculateAccuracy(fragment) {
     try {
+        if (!fragment || !fragment.length) {
+            return 0;
+        }
         let sum = 0;
         for (let i = 0; i < fragment.length; i++) {
             for (let j = 0; j < fragment[0].length; j++) {
@@ -85,6 +92,11 @@ function calculateAccuracy(fragment) {
 // Calculate cross-fragment accuracy
 function calculateCrossAccuracy(matrix, start1, end1, start2, end2) {
     try {
+        if (!matrix || start1 < 0 || end1 > matrix.length || 
+            start2 < 0 || end2 > matrix.length || 
+            start1 >= end1 || start2 >= end2) {
+            throw new Error('Invalid cross accuracy parameters');
+        }
         let sum = 0;
         for (let i = start1; i < end1; i++) {
             for (let j = start2; j < end2; j++) {
@@ -100,97 +112,121 @@ function calculateCrossAccuracy(matrix, start1, end1, start2, end2) {
 
 // Display splitting results with detailed explanations
 function displaySplittingResults(results) {
+    console.log('Displaying splitting results:', results);
+    
+    if (!results || !results.matrix || !results.allResults) {
+        console.error('Invalid results object:', results);
+        return;
+    }
+
     const container = document.getElementById('splitting-results');
+    if (!container) {
+        console.error('Could not find splitting-results container');
+        return;
+    }
     container.innerHTML = '';
 
     // Add theoretical explanation
     const theory = document.createElement('div');
     theory.className = 'theory-section';
     theory.innerHTML = `
-        <h3>Understanding Vertical Splitting</h3>
-        <p>The vertical splitting algorithm analyzes the matrix to find the optimal point to split it into two fragments. 
-           This is done by evaluating three key metrics:</p>
-        <ul>
-            <li><strong>Fragment Accuracy:</strong> Measures the internal cohesion within each fragment</li>
-            <li><strong>Cross Accuracy:</strong> Measures the relationships between fragments</li>
-            <li><strong>Split Quality:</strong> Combined metric calculated as: (F1 × F2) / (Cross + 1)</li>
-        </ul>
+        <h3>Using Clustered AM for Vertical Splitting</h3>
+        <p>This section demonstrates how to <strong>partition a clustered attribute affinity matrix</strong> into optimal vertical fragments (VF).</p>
+        
+        <h4>Initial Matrix</h4>
+        <div class="matrix-display">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        ${results.attributeOrder.map(attr => `<th>${attr}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${results.matrix.map((row, i) => `
+                        <tr>
+                            <th>${results.attributeOrder[i]}</th>
+                            ${row.map(val => `<td>${val}</td>`).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <h4>Split Quality Metric (sq)</h4>
+        <div class="formula-section">
+            <p>The split quality is calculated as:</p>
+            <div class="formula">sq = acc(VF₁) × acc(VF₂) - [acc(VF₁,VF₂)]²</div>
+            <p>Where:</p>
+            <ul>
+                <li>acc(VF): Sum of affinities within a fragment</li>
+                <li>acc(VF₁,VF₂): Sum of cross-fragment affinities</li>
+            </ul>
+        </div>
     `;
     container.appendChild(theory);
 
-    // Best Split Results
-    const bestSplit = document.createElement('div');
-    bestSplit.className = 'best-split-section';
-    bestSplit.innerHTML = `
-        <h3>Best Split Analysis</h3>
-        <div class="split-quality">
-            <p><strong>Split Quality:</strong> ${results.bestSplitQuality.toFixed(2)}</p>
-            <p><strong>Split Location:</strong> After Column ${results.splitPoints[0]}</p>
-            <p class="explanation">This split maximizes internal fragment cohesion while minimizing cross-fragment relationships.</p>
-        </div>
-    `;
-    container.appendChild(bestSplit);
-
-    // Fragment Details
-    const fragments = document.createElement('div');
-    fragments.className = 'fragments-section';
-    fragments.innerHTML = `
-        <h3>Fragment Analysis</h3>
-        <div class="fragment-details">
-            <div class="fragment">
-                <h4>Fragment 1 (Left)</h4>
-                <p>Columns: 1 to ${results.splitPoints[0]}</p>
-                <p>Characteristics:</p>
-                <ul>
-                    <li>High internal values (75-80)</li>
-                    <li>Strong local relationships</li>
-                    <li>Fragment Accuracy: ${results.fragments[0].reduce((sum, row) => sum + row.reduce((sum, cell) => sum + cell, 0), 0).toFixed(2)}</li>
-                </ul>
-            </div>
-            <div class="fragment">
-                <h4>Fragment 2 (Right)</h4>
-                <p>Columns: ${results.splitPoints[0] + 1} to ${results.fragments[1].length}</p>
-                <p>Characteristics:</p>
-                <ul>
-                    <li>Moderate values (45-53)</li>
-                    <li>Distinct pattern from Fragment 1</li>
-                    <li>Fragment Accuracy: ${results.fragments[1].reduce((sum, row) => sum + row.reduce((sum, cell) => sum + cell, 0), 0).toFixed(2)}</li>
-                </ul>
-            </div>
-        </div>
-    `;
-    container.appendChild(fragments);
-
-    // All Split Attempts Table with Explanation
-    const splitsTable = document.createElement('div');
-    splitsTable.className = 'splits-analysis-section';
-    splitsTable.innerHTML = `
-        <h3>Comparative Split Analysis</h3>
-        <p class="explanation">Each possible split point was evaluated using these metrics:</p>
-        <table class="splits-table">
-            <thead>
-                <tr>
-                    <th>Split Point</th>
-                    <th>Split Quality</th>
-                    <th>Fragment 1 Accuracy</th>
-                    <th>Fragment 2 Accuracy</th>
-                    <th>Cross Accuracy</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${results.allResults.map((r, index) => `
-                    <tr class="${index === results.splitPoints[0] ? 'best-split' : ''}">
-                        <td>Column ${index + 1}</td>
-                        <td>${r.splitQuality.toFixed(2)}</td>
-                        <td>${r.acc1.toFixed(2)}</td>
-                        <td>${r.acc2.toFixed(2)}</td>
-                        <td>${r.accCross.toFixed(2)}</td>
+    // Split Analysis Results
+    const analysis = document.createElement('div');
+    analysis.className = 'analysis-section';
+    
+    // Create trials table HTML
+    const trialsTableHTML = `
+        <h4>Split Point Analysis</h4>
+        <div class="trials">
+            <table class="split-trials">
+                <thead>
+                    <tr>
+                        <th>Split Point</th>
+                        <th>VF₁ Accuracy</th>
+                        <th>VF₂ Accuracy</th>
+                        <th>Cross Accuracy</th>
+                        <th>Split Quality</th>
                     </tr>
-                `).join('')}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    ${results.allResults.map((r, i) => `
+                        <tr class="${i === results.bestSplit - 1 ? 'best-split' : ''}">
+                            <td>After ${results.attributeOrder[r.splitPoint - 1]}</td>
+                            <td>${r.acc1.toFixed(2)}</td>
+                            <td>${r.acc2.toFixed(2)}</td>
+                            <td>${r.accCross.toFixed(2)}</td>
+                            <td>${r.splitQuality.toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
     `;
-    container.appendChild(splitsTable);
+
+    // Best split details
+    const bestSplitHTML = `
+        <div class="best-split-details">
+            <h4>Optimal Split Found</h4>
+            <p>The best vertical split occurs after ${results.attributeOrder[results.bestSplit - 1]} with:</p>
+            <ul>
+                <li>Split Quality: ${results.bestQuality.toFixed(2)}</li>
+                <li>VF₁: {${results.attributeOrder.slice(0, results.bestSplit).join(', ')}}</li>
+                <li>VF₂: {${results.attributeOrder.slice(results.bestSplit).join(', ')}}</li>
+            </ul>
+        </div>
+    `;
+
+    // Implications
+    const implicationsHTML = `
+        <div class="implications">
+            <h4>Why This Split?</h4>
+            <ul>
+                <li>Maximizes internal fragment cohesion</li>
+                <li>Minimizes cross-fragment access requirements</li>
+                <li>Balances fragment sizes for better data distribution</li>
+            </ul>
+            <p class="note">Note: Primary key (PK) will be duplicated in all fragments to maintain referential integrity.</p>
+        </div>
+    `;
+
+    analysis.innerHTML = trialsTableHTML + bestSplitHTML + implicationsHTML;
+    container.appendChild(analysis);
 
     // Add CSS for the enhanced display
     addSplittingStyles();
@@ -200,48 +236,65 @@ function displaySplittingResults(results) {
 function addSplittingStyles() {
     const styleSheet = document.createElement('style');
     styleSheet.textContent = `
-        .theory-section, .best-split-section, .fragments-section, .splits-analysis-section {
+        .theory-section, .analysis-section {
             margin: 20px 0;
-            padding: 15px;
+            padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .explanation {
-            color: #666;
-            font-style: italic;
-            margin: 10px 0;
+        .matrix-display {
+            margin: 20px 0;
+            overflow-x: auto;
         }
 
-        .fragment-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .matrix-table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: white;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .matrix-table th {
+            background: #f0f0f0;
+        }
+
+        .formula-section {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
             margin: 15px 0;
         }
 
-        .fragment {
-            padding: 15px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .formula {
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
         }
 
-        .splits-table {
+        .split-trials {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
             background: white;
         }
 
-        .splits-table th, .splits-table td {
+        .split-trials th, .split-trials td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: center;
         }
 
-        .splits-table th {
+        .split-trials th {
             background: #f0f0f0;
         }
 
@@ -250,18 +303,25 @@ function addSplittingStyles() {
             font-weight: bold;
         }
 
-        .mathematical-notes {
-            margin-top: 15px;
-            padding: 15px;
-            background: #fff3e0;
-            border-left: 4px solid #ff9800;
-        }
-
-        .split-quality {
+        .best-split-details {
             background: #e8f5e9;
             padding: 15px;
             border-radius: 6px;
-            margin: 10px 0;
+            margin: 20px 0;
+        }
+
+        .implications {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .note {
+            font-style: italic;
+            color: #666;
+            margin-top: 10px;
         }
     `;
     document.head.appendChild(styleSheet);
